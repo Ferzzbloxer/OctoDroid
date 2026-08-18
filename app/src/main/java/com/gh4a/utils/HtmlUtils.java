@@ -192,10 +192,16 @@ public class HtmlUtils {
      */
     public static String rewriteRelativeUrls(final String html, final String repoUser,
             final String repoName, final String ref, final String folderPath) {
-        final String baseUrl = "https://github.com/" + repoUser + "/" + repoName + "/blob/" + ref + "/" + folderPath;
+        final String pathSuffix = TextUtils.isEmpty(folderPath) ? "" : "/" + folderPath;
+
+        // Note: no trailing slash here, even when folderPath is empty -- rewriteUrlsInAttribute()
+        // is responsible for joining baseUrl and the relative URL with exactly one slash.
+        final String baseUrl = "https://github.com/" + repoUser + "/" + repoName + "/blob/" + ref + pathSuffix;
         String rewrittenHtml = rewriteUrlsInAttribute("href", html, baseUrl);
 
-        final String baseUrlForImages = "https://raw.github.com/" + repoUser + "/" + repoName + "/" + ref + "/" + folderPath;
+        // raw.github.com was retired years ago; raw.githubusercontent.com is the current domain
+        // for raw file content (see IntentUtils.RAW_URL_FORMAT).
+        final String baseUrlForImages = "https://raw.githubusercontent.com/" + repoUser + "/" + repoName + "/" + ref + pathSuffix;
         return rewriteUrlsInAttribute("src", rewrittenHtml, baseUrlForImages);
     }
 
@@ -204,7 +210,7 @@ public class HtmlUtils {
         StringBuffer sb = null; // lazy initialized only if there's any match
         while (matcher.find()) {
             String url = matcher.group(2);
-            boolean isAbsoluteUrl = url.contains(":");
+            boolean isAbsoluteUrl = url.contains(":") || url.startsWith("//");
             boolean isAnchorUrl = url.startsWith("#");
             if (!isAbsoluteUrl && !isAnchorUrl) {
                 if (url.startsWith("/")) {
