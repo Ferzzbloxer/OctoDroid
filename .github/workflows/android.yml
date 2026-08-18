@@ -31,12 +31,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       # OctoDroid needs a GitHub OAuth app client id/secret at build time
-      # (app/build.gradle reads app/client.properties into BuildConfig).
+      # (app/build.gradle reads client.properties into BuildConfig). That file is loaded
+      # with a plain `new File('client.properties')`, which Gradle resolves relative to
+      # the directory it was invoked from (the repo root, since that's where gradlew
+      # runs below) rather than the app/ module -- so it must be written at the repo
+      # root, not inside app/.
       # Real credentials are only required to actually log in at runtime, not to compile,
       # so pull them from repo secrets when available and fall back to placeholders
       # otherwise (e.g. on PRs from forks, where secrets aren't exposed).
       - name: Write client.properties
-        working-directory: app
         env:
           CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
