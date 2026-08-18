@@ -1,0 +1,53 @@
+name: Generate lint baseline
+
+# Manually-triggered, one-off helper. Run this from the Actions tab whenever you want to
+# (re)generate app/lint-baseline.xml -- e.g. the first time you turn it on, or later to
+# intentionally reset it and re-baseline the then-current lint errors/warnings.
+#
+# It does NOT commit anything for you: download the "lint-baseline" artifact from the
+# finished run and add app/lint-baseline.xml to the repo yourself (drag-and-drop upload
+# on github.com works fine -- no local build required).
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-baseline:
+    name: Generate baseline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # See build.yml for why this must be quoted and written at the repo root.
+      - name: Write client.properties
+        env:
+          CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
+        run: |
+          echo "ClientId=\"${CLIENT_ID:-placeholder_client_id}\"" > client.properties
+          echo "ClientSecret=\"${CLIENT_SECRET:-placeholder_client_secret}\"" >> client.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # updateLintBaseline always "fails" the Gradle invocation even on success (it exits
+      # non-zero to make sure you notice a baseline changed), so don't let that kill the job.
+      - name: Generate lint-baseline.xml
+        run: ./gradlew updateLintBaseline --stacktrace || true
+
+      - name: Upload lint-baseline.xml
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-baseline
+          path: app/lint-baseline.xml
+          if-no-files-found: error
