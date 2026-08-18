@@ -39,13 +39,17 @@ jobs:
       # Real credentials are only required to actually log in at runtime, not to compile,
       # so pull them from repo secrets when available and fall back to placeholders
       # otherwise (e.g. on PRs from forks, where secrets aren't exposed).
+      # Values must be quoted (ClientId="...") -- buildConfigField splices this property
+      # value directly into generated Java source as a string literal, so an unquoted
+      # value produces invalid Java (e.g. `CLIENT_ID = placeholder_client_id;`), as
+      # documented in this repo's README's "Create a client.properties file" section.
       - name: Write client.properties
         env:
           CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
-          echo "ClientId=${CLIENT_ID:-placeholder_client_id}" > client.properties
-          echo "ClientSecret=${CLIENT_SECRET:-placeholder_client_secret}" >> client.properties
+          echo "ClientId=\"${CLIENT_ID:-placeholder_client_id}\"" > client.properties
+          echo "ClientSecret=\"${CLIENT_SECRET:-placeholder_client_secret}\"" >> client.properties
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
