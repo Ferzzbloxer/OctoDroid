@@ -15,6 +15,7 @@
  */
 package com.gh4a.adapter;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -161,6 +162,12 @@ public class CommitCommentAdapter extends RootAdapter<GitComment, CommitCommentA
         return holder;
     }
 
+    // Lint's RecyclerView check warns about storing bind-time state on the holder for later
+    // use instead of holder.getAdapterPosition(); that's unsafe for adapters using stable ids
+    // or payload-based partial rebinds, neither of which RootAdapter does here -- every data
+    // change goes through a full notifyDataSetChanged(), so onBindViewHolder always re-runs
+    // and mBoundItem is never stale when read from a click listener.
+    @SuppressLint("RecyclerView")
     @Override
     public void onBindViewHolder(ViewHolder holder, GitComment item) {
         final User user = item.user();

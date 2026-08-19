@@ -15,6 +15,7 @@
  */
 package com.gh4a.activities;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -76,6 +77,12 @@ public class Github4AndroidActivity extends BaseActivity implements
                 }
             });
 
+    // Lint's MissingInflatedId check flags R.id.header/R.id.content below as absent from
+    // layout/main, since it only sees the setContentView(R.layout.main) call here. It can't
+    // trace that BaseActivity.setContentView(int) nests that layout inside content_container,
+    // itself part of base_activity.xml (inflated first via super.onCreate()) -- so those ids
+    // are genuinely present in the final view hierarchy at this point. False positive.
+    @SuppressLint("MissingInflatedId")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

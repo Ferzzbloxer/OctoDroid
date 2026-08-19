@@ -1,5 +1,6 @@
 package com.gh4a.adapter;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Parcel;
@@ -132,6 +133,10 @@ public class IssueLabelAdapter extends
         return holder;
     }
 
+    // See the equivalent suppression in CommitCommentAdapter: RootAdapter always fully
+    // rebinds via notifyDataSetChanged(), so holding the bound label on the holder for
+    // later use in click/text listeners is safe here.
+    @SuppressLint("RecyclerView")
     @Override
     public void onBindViewHolder(ViewHolder holder, EditableLabel label) {
         holder.lastAssignedLabel = label;

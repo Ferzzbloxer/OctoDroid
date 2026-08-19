@@ -1,5 +1,6 @@
 package com.gh4a.widget;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
@@ -85,6 +86,10 @@ public class ReactionBar extends HorizontalScrollView implements View.OnClickLis
     private ReactionUserPopup mPopup;
 
     private ReactionDetailsCache mDetailsCache;
+    // MenuPopupHelper/MenuBuilder are @RestrictTo(LIBRARY_GROUP_PREFIX) internals with no
+    // public AppCompat replacement for forcing icons to show in a popup menu -- this is a
+    // long-standing, widely-used app workaround for that gap, not a shortcut to fix away.
+    @SuppressLint("RestrictedApi")
     private MenuPopupHelper mAddReactionPopup;
     private @MenuRes int mAddReactionMenuResId = R.menu.reaction_menu;
     private AddReactionMenuHelper mAddReactionMenuHelper;
@@ -174,6 +179,8 @@ public class ReactionBar extends HorizontalScrollView implements View.OnClickLis
         return super.onSaveInstanceState();
     }
 
+    // See the field-level suppression on mAddReactionPopup above.
+    @SuppressLint("RestrictedApi")
     @Override
     public void onClick(View view) {
         if (mPopup != null && mPopup.isShowing()) {

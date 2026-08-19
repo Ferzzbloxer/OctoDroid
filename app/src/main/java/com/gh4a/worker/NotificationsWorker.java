@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -230,6 +231,17 @@ public class NotificationsWorker extends Worker {
         return Result.success();
     }
 
+    /**
+     * POST_NOTIFICATIONS is a runtime permission on API 33+ that the user can revoke at any
+     * time, so it must be checked immediately before every notify() call rather than assumed
+     * from the manifest declaration alone. There's no Activity available from a background
+     * Worker to request it if missing, so we just skip posting in that case.
+     */
+    private boolean canPostNotifications() {
+        return ContextCompat.checkSelfPermission(getApplicationContext(),
+                android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void showRepoNotification(NotificationManagerCompat nm,
             List<NotificationThread> notifications, long lastCheck) {
         final Context context = getApplicationContext();
@@ -301,7 +313,9 @@ public class NotificationsWorker extends Worker {
             builder.setOnlyAlertOnce(true);
         }
 
-        nm.notify(id, builder.build());
+        if (canPostNotifications()) {
+            nm.notify(id, builder.build());
+        }
     }
 
     private void showSummaryNotification(NotificationManagerCompat nm,
@@ -372,7 +386,9 @@ public class NotificationsWorker extends Worker {
             builder.setOnlyAlertOnce(true);
         }
 
-        nm.notify(0, builder.build());
+        if (canPostNotifications()) {
+            nm.notify(0, builder.build());
+        }
     }
 
     private String determineNotificationTypeLabel(NotificationThread notification) {

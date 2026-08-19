@@ -60,6 +60,15 @@ android {
         buildConfig true
     }
 
+    lint {
+        // This is a long-lived codebase that predates lint being wired into CI: baseline
+        // captures today's pre-existing issues as "known" so CI only fails on new issues
+        // introduced from here on, instead of blocking every build on the existing backlog.
+        // Generate/refresh it locally with `./gradlew updateLintBaseline` and commit the
+        // resulting lint-baseline.xml whenever you intentionally want to reset the baseline.
+        baseline = file("lint-baseline.xml")
+    }
+
     dependenciesInfo {
         includeInApk false
         includeInBundle false

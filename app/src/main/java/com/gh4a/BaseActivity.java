@@ -56,7 +56,6 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable;
-import androidx.appcompat.view.SupportMenuInflater;
 import androidx.appcompat.widget.Toolbar;
 import androidx.loader.app.LoaderManager;
 
@@ -120,7 +119,7 @@ public abstract class BaseActivity extends AppCompatActivity implements
     private NavigationView mRightDrawer;
     private View mLeftDrawerHeader;
     private View mRightDrawerHeader;
-    private SupportMenuInflater mMenuInflater;
+    private MenuInflater mMenuInflater;
 
     private boolean mAppBarLocked = false;
     private boolean mAppBarScrollable = true;
@@ -499,8 +498,10 @@ public abstract class BaseActivity extends AppCompatActivity implements
     @Override
     public MenuInflater getMenuInflater() {
         if (mMenuInflater == null) {
-            mMenuInflater = new SupportMenuInflater(
-                    new ContextThemeWrapper(this, R.style.HeaderTheme));
+            // A plain MenuInflater works fine here -- its public inflate() only operates on
+            // the standard Menu interface, so it inflates into an AppCompat-backed Menu just
+            // as well as the internal SupportMenuInflater subclass would.
+            mMenuInflater = new MenuInflater(new ContextThemeWrapper(this, R.style.HeaderTheme));
         }
         return mMenuInflater;
     }
