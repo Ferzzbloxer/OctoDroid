@@ -1,0 +1,81 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same branch/PR
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # OctoDroid needs a GitHub OAuth app client id/secret at build time
+      # (app/build.gradle reads client.properties into BuildConfig). That file is loaded
+      # with a plain `new File('client.properties')`, which Gradle resolves relative to
+      # the directory it was invoked from (the repo root, since that's where gradlew
+      # runs below) rather than the app/ module -- so it must be written at the repo
+      # root, not inside app/.
+      # Real credentials are only required to actually log in at runtime, not to compile,
+      # so pull them from repo secrets when available and fall back to placeholders
+      # otherwise (e.g. on PRs from forks, where secrets aren't exposed).
+      # Values must be quoted (ClientId="...") -- buildConfigField splices this property
+      # value directly into generated Java source as a string literal, so an unquoted
+      # value produces invalid Java (e.g. `CLIENT_ID = placeholder_client_id;`), as
+      # documented in this repo's README's "Create a client.properties file" section.
+      - name: Write client.properties
+        env:
+          CLIENT_ID: ${{ secrets.GITHUB_OAUTH_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.GITHUB_OAUTH_CLIENT_SECRET }}
+        run: |
+          echo "ClientId=\"${CLIENT_ID:-placeholder_client_id}\"" > client.properties
+          echo "ClientSecret=\"${CLIENT_SECRET:-placeholder_client_secret}\"" >> client.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Lint
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: octodroid-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload test & lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
