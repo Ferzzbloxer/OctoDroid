@@ -237,11 +237,6 @@ public class NotificationsWorker extends Worker {
      * from the manifest declaration alone. There's no Activity available from a background
      * Worker to request it if missing, so we just skip posting in that case.
      */
-    private boolean canPostNotifications() {
-        return ContextCompat.checkSelfPermission(getApplicationContext(),
-                android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
-    }
-
     private void showRepoNotification(NotificationManagerCompat nm,
             List<NotificationThread> notifications, long lastCheck) {
         final Context context = getApplicationContext();
@@ -313,7 +308,12 @@ public class NotificationsWorker extends Worker {
             builder.setOnlyAlertOnce(true);
         }
 
-        if (canPostNotifications()) {
+        // POST_NOTIFICATIONS is a runtime permission on API 33+ that the user can revoke at
+        // any time, so it is checked immediately before notify() rather than assumed from the
+        // manifest declaration alone. There is no Activity available from a background Worker
+        // to request it if missing, so we just skip posting in that case.
+        if (ContextCompat.checkSelfPermission(getApplicationContext(),
+                android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             nm.notify(id, builder.build());
         }
     }
@@ -386,7 +386,8 @@ public class NotificationsWorker extends Worker {
             builder.setOnlyAlertOnce(true);
         }
 
-        if (canPostNotifications()) {
+        if (ContextCompat.checkSelfPermission(getApplicationContext(),
+                android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             nm.notify(0, builder.build());
         }
     }

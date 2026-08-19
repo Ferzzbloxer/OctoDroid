@@ -1,5 +1,6 @@
 package com.gh4a.model;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 
 import com.gh4a.R;
@@ -100,6 +101,7 @@ public class StatusWrapper {
         return mTargetUrl;
     }
 
+    @SuppressLint("StringFormatMatches")
     @Nullable
     private static String formatTimeDelta(Context context, @Nullable Date start, @Nullable Date end) {
         if (start == null || end == null) {
