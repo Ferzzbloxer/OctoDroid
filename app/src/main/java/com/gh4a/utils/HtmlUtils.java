@@ -196,16 +196,22 @@ public class HtmlUtils {
 
         // Note: no trailing slash here, even when folderPath is empty -- rewriteUrlsInAttribute()
         // is responsible for joining baseUrl and the relative URL with exactly one slash.
-        final String baseUrl = "https://github.com/" + repoUser + "/" + repoName + "/blob/" + ref + pathSuffix;
-        String rewrittenHtml = rewriteUrlsInAttribute("href", html, baseUrl);
+        // repoRootUrl (without folderPath) is kept separately: a root-relative link ("/foo")
+        // must always resolve against the repo root regardless of which folder the current
+        // file lives in, same as root-relative URLs behave in a browser.
+        final String repoRootUrl = "https://github.com/" + repoUser + "/" + repoName + "/blob/" + ref;
+        final String baseUrl = repoRootUrl + pathSuffix;
+        String rewrittenHtml = rewriteUrlsInAttribute("href", html, baseUrl, repoRootUrl);
 
         // raw.github.com was retired years ago; raw.githubusercontent.com is the current domain
         // for raw file content (see IntentUtils.RAW_URL_FORMAT).
-        final String baseUrlForImages = "https://raw.githubusercontent.com/" + repoUser + "/" + repoName + "/" + ref + pathSuffix;
-        return rewriteUrlsInAttribute("src", rewrittenHtml, baseUrlForImages);
+        final String repoRootUrlForImages = "https://raw.githubusercontent.com/" + repoUser + "/" + repoName + "/" + ref;
+        final String baseUrlForImages = repoRootUrlForImages + pathSuffix;
+        return rewriteUrlsInAttribute("src", rewrittenHtml, baseUrlForImages, repoRootUrlForImages);
     }
 
-    private static String rewriteUrlsInAttribute(String attribute, String html, String baseUrl) {
+    private static String rewriteUrlsInAttribute(String attribute, String html, String baseUrl,
+            String repoRootUrl) {
         final Matcher matcher = Pattern.compile("(" + attribute + ")=\"(\\S+)\"").matcher(html);
         StringBuffer sb = null; // lazy initialized only if there's any match
         while (matcher.find()) {
@@ -214,7 +220,7 @@ public class HtmlUtils {
             boolean isAnchorUrl = url.startsWith("#");
             if (!isAbsoluteUrl && !isAnchorUrl) {
                 if (url.startsWith("/")) {
-                    url = baseUrl + url;
+                    url = repoRootUrl + url;
                 } else {
                     url = baseUrl + "/" + url;
                 }
