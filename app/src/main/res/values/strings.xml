@@ -610,7 +610,7 @@
     <!-- Deliberately omits %3$d (seconds): StatusWrapper.formatTimeDelta() always passes
          (hours, minutes, seconds) positionally, and this string intentionally shows coarser
          "Xh Ym" precision once the duration reaches hour scale. getString() silently ignores
-         the unused positional arg, so this is safe -- lint just can't see across call sites
+         the unused positional arg, so this is safe; lint just can't see across call sites
          that this format is deliberately sharing indices with its sibling strings above. -->
     <string name="check_runtime_format_hours" tools:ignore="StringFormatMatches">%1$d h %2$d min</string>
 
