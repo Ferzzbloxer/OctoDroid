@@ -115,13 +115,39 @@ public class RefPathDisambiguationTask extends UrlLoadTask {
         var branchService = ServiceFactory.getForFullPagedLists(RepositoryBranchService.class, false);
         var repoService = ServiceFactory.getForFullPagedLists(RepositoryService.class, false);
 
-        // then look for matching branches
-        return ApiHelpers.PageIterator
-                .first(page -> branchService.getBranches(mRepoOwner, mRepoName, page), this::matchesUrlPath)
-                // and tags after that
-                .flatMap(result -> RxUtils.toSingleOrFallback(result, () -> ApiHelpers.PageIterator
-                        .first(page -> repoService.getTags(mRepoOwner, mRepoName, page), this::matchesUrlPath)))
-                .map(this::determineRefAndPathFromFoundRef);
+        // Most links (e.g. ones found inside a repo's own README) point at the repo's default
+        // branch, so check that with a single request before falling back to paging through
+        // every branch and then every tag below. On a slow connection, a repo with many
+        // branches could take several sequential requests to page through just to resolve a
+        // link that was pointing at the default branch all along -- occasionally slow/flaky
+        // enough for the whole resolution to fail and surface as a misleading 404.
+        return repoService.getRepository(mRepoOwner, mRepoName)
+                .map(ApiHelpers::throwOnFailure)
+                .map(repo -> {
+                    String defaultBranch = repo.defaultBranch();
+                    if (defaultBranch != null && matchesRefName(defaultBranch)) {
+                        return Optional.of(pairForRefName(defaultBranch));
+                    }
+                    return Optional.<Pair<String, String>>empty();
+                })
+                .flatMap(fastPathResult -> RxUtils.toSingleOrFallback(fastPathResult, () -> ApiHelpers.PageIterator
+                        // then look for matching branches
+                        .first(page -> branchService.getBranches(mRepoOwner, mRepoName, page), this::matchesUrlPath)
+                        // and tags after that
+                        .flatMap(result -> RxUtils.toSingleOrFallback(result, () -> ApiHelpers.PageIterator
+                                .first(page -> repoService.getTags(mRepoOwner, mRepoName, page), this::matchesUrlPath)))
+                        .map(this::determineRefAndPathFromFoundRef)));
+    }
+
+    private boolean matchesRefName(String refName) {
+        return mRefAndPath.equals(refName) || mRefAndPath.startsWith(refName + "/");
+    }
+
+    private Pair<String, String> pairForRefName(String refName) {
+        if (mRefAndPath.equals(refName)) {
+            return Pair.create(refName, null);
+        }
+        return Pair.create(refName, mRefAndPath.substring((refName + "/").length()));
     }
 
     private boolean matchesUrlPath(Branch ref) {
